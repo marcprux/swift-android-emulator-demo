@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - uses: skiptools/swift-android-action@main
+        id: setup-toolchain
         with:
           swift-version: nightly-6.2
           # just set up the toolchain but don't build anything
