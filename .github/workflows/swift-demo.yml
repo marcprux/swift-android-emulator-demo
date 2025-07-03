@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-13]
         api-level: [29]
@@ -40,7 +41,7 @@ jobs:
 
       - name: create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: marcprux/android-emulator-runner@main
+        uses: reactivecircus/android-emulator-runner@main
         with:
           api-level: ${{ matrix.api-level }}
           force-avd-creation: false
@@ -48,8 +49,8 @@ jobs:
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
-      - name: run tests
-        uses: marcprux/android-emulator-runner@main
+      - name: run commands
+        uses: reactivecircus/android-emulator-runner@main
         with:
           api-level: ${{ matrix.api-level }}
           force-avd-creation: false
@@ -59,3 +60,7 @@ jobs:
             adb push ExecutableDemo/.build/debug/ExecutableDemo /data/local/tmp/
             adb shell /data/local/tmp/ExecutableDemo
 
+      - name: run commands again
+        run: |
+          adb push ExecutableDemo/.build/debug/ExecutableDemo /data/local/tmp/
+          adb shell /data/local/tmp/ExecutableDemo
