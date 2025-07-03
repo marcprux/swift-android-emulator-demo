@@ -1,0 +1,53 @@
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-13]
+        api-level: [29]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - uses: skiptools/swift-android-action@main
+        with:
+          swift-version: nightly-6.2
+          # just set up the toolchain but don't build anything
+          build-package: false
+
+      - run: |
+          mkdir ExecutableDemo
+          cd ExecutableDemo
+          swift package init --type executable
+          ${{ steps.setup-toolchain.outputs.swift-build }} -c debug
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}
+
+      - name: create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: marcprux/android-emulator-runner@main
+        with:
+          api-level: ${{ matrix.api-level }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: run tests
+        uses: marcprux/android-emulator-runner@main
+        with:
+          api-level: ${{ matrix.api-level }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb push ExecutableDemo/.build/debug/ExecutableDemo /data/local/tmp/
+            adb shell /data/local/tmp/ExecutableDemo
+
